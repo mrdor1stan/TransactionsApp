@@ -1,0 +1,16 @@
+<resources>
+    <string name="app_name">TransactionsApp</string>
+    <string name="add">Add</string>
+    <string name="add_transaction">Add transaction</string>
+    <string name="no_transactions">No transactions were made</string>
+    <string name="transactions_history">Transactions history</string>
+    <string name="last_updated_at">Last updated at: %1$s</string>
+    <string name="balance">Balance</string>
+    <string name="groceries">Groceries</string>
+    <string name="taxi">Taxi</string>
+    <string name="electronics">Electronics</string>
+    <string name="other">Other</string>
+    <string name="restaurant">Restaurant</string>
+    <string name="enter_amount">Enter amount</string>
+    <string name="choose_category">Choose category</string>
+</resources>
