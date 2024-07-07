@@ -2,6 +2,7 @@ package com.example.transactionsapp.data
 
 import androidx.annotation.DrawableRes
 import androidx.room.Entity
+import androidx.room.PrimaryKey
 import com.example.transactionsapp.R
 import java.util.Date
 import java.util.UUID
@@ -15,4 +16,9 @@ enum class Category(@DrawableRes val icon: Int){
 }
 
 @Entity(tableName = "transactions")
-data class Transaction(val id: UUID, val amount: Double, val dateTime: Date, val category: Category?)
+data class Transaction(
+    @PrimaryKey val id: UUID,
+    val amount: Double,
+    val dateTime: Date,
+    val category: Category?
+)
