@@ -3,14 +3,11 @@ package com.example.transactionsapp.ui
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.material3.Button
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
@@ -23,7 +20,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -41,7 +37,7 @@ fun AddTransactionScreen(modifier: Modifier = Modifier) {
         OutlinedTextField(value = "", onValueChange = {}, label = { Text(text = stringResource(id = R.string.enter_amount)) },
             modifier = Modifier.fillMaxWidth())
         Text(text = stringResource(id = R.string.choose_category))
-        CategoryRadioButtonsList(options = Category.values().toList(), modifier = Modifier.fillMaxWidth())
+        CategoryRadioButtonsList(options = Category.entries.toList(), modifier = Modifier.fillMaxWidth())
         Button(onClick = { /*TODO*/ }, ) {
             Text(text = stringResource(id = R.string.add))
         }
@@ -100,3 +96,4 @@ fun CategoryRadioButtonsList(
         }
     }
 }
+
