@@ -1,5 +1,8 @@
 package com.example.transactionsapp.ui
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.APPLICATION_KEY
@@ -16,11 +19,16 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.io.IOException
+import java.time.LocalDateTime
+import java.util.Calendar
+import java.util.Date
+import java.util.UUID
 
 data class MainScreenUiState(
     val bitcoinRate: RequestStatus,
     val balance: RequestStatus,
-    val transactions: List<Transaction>
+    val transactions: List<Transaction>,
+    val topUpScreenRequired: Boolean = false
 )
 
 private val TRANSACTIONS_ON_PAGE = 20
@@ -37,6 +45,10 @@ class MainScreenViewModel(
             transactions = listOf()
         )
     )
+
+    private var _input = MutableStateFlow("")
+    val input = _input.asStateFlow()
+
     val uiState = _uiState.asStateFlow()
     var transactionPage = 0
 
@@ -44,6 +56,13 @@ class MainScreenViewModel(
         updateBitcoinToDollarRate()
         updateBalance()
         updateTransactions()
+    }
+
+    fun validateInput(): Boolean =
+        (input.value.toDoubleOrNull() ?: -1.0) > 0.0
+
+    fun updateInput(newInput: String) {
+        _input.update { newInput }
     }
 
     private fun updateBalance() {
@@ -58,12 +77,23 @@ class MainScreenViewModel(
         }
     }
 
+    fun topUp() {
+        if (!validateInput())
+            return
+        val amount = input.value.toDouble()
+        val date = LocalDateTime.now()
+        viewModelScope.launch {
+            val transaction = Transaction(UUID.randomUUID(), amount, date, category = null)
+            transactionsRepository.insertTransaction(transaction)
+        }
+    }
+
     fun updateTransactions() {
         viewModelScope.launch {
             transactionsRepository.getTransactions(TRANSACTIONS_ON_PAGE, transactionPage)
                 .collect { collectedTransactions ->
                     _uiState.update { oldUiState ->
-                        oldUiState.copy(transactions = oldUiState.transactions + collectedTransactions)
+                        oldUiState.copy(transactions = collectedTransactions)
                     }
                 }
             transactionPage++
@@ -79,6 +109,10 @@ class MainScreenViewModel(
                 _uiState.update { it.copy(bitcoinRate = RequestStatus.Error) }
             }
         }
+    }
+
+    fun requireTopUpScreen(enabled: Boolean) {
+        _uiState.update { it.copy(topUpScreenRequired = enabled) }
     }
 
     companion object {

@@ -11,10 +11,11 @@ import androidx.room.RoomDatabase
 import androidx.room.TypeConverter
 import androidx.room.TypeConverters
 import kotlinx.coroutines.flow.Flow
-import java.util.Date
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 import java.util.UUID
 
-@Database(entities = [Transaction::class], version=1)
+@Database(entities = [Transaction::class], version = 1)
 @TypeConverters(TransactionsTypeConverters::class)
 abstract class TransactionsDatabase : RoomDatabase() {
     abstract fun transactionDao(): TransactionsDao
@@ -40,23 +41,28 @@ abstract class TransactionsDatabase : RoomDatabase() {
 interface TransactionsDao {
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insert(transaction: Transaction)
+
     @Query("SELECT * FROM transactions")
     fun getAllTransactions(): Flow<List<Transaction>>
+
     @Query("SELECT * FROM transactions WHERE id=:id")
     fun getTransaction(id: UUID): Flow<Transaction>
+
     @Query("SELECT * FROM transactions ORDER BY dateTime DESC LIMIT :limit OFFSET :offset")
     fun getTransactions(limit: Int, offset: Int): Flow<List<Transaction>>
+
     @Query("SELECT SUM(amount) FROM transactions")
     fun getBalance(): Flow<Double>
 }
 
 class TransactionsTypeConverters {
     @TypeConverter
-    fun fromDate(date: Date): Long {
-        return date.time
+    fun fromLocalDateTime(date: LocalDateTime): String {
+        return date.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
     }
+
     @TypeConverter
-    fun toDate(millisSinceEpoch: Long): Date {
-        return Date(millisSinceEpoch)
+    fun toLocalDateTime(dateString: String): LocalDateTime {
+        return LocalDateTime.parse(dateString, DateTimeFormatter.ISO_LOCAL_DATE_TIME)
     }
 }

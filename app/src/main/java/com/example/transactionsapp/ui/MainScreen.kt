@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -16,12 +15,15 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -36,49 +38,87 @@ import com.example.transactionsapp.R
 import com.example.transactionsapp.data.RequestStatus
 import com.example.transactionsapp.data.Transaction
 import com.example.transactionsapp.ui.theme.TransactionsAppTheme
+import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 
+fun Double.toFormattedNumber(decimal: Int = 2) = String.format("%.${decimal}f", this)
+fun LocalDate.toFormattedDate(): String {
+    val today = LocalDate.now()
+    val yesterday = today.minusDays(1)
+
+    return when (this) {
+        today -> "Today"
+        yesterday -> "Yesterday"
+        else -> format(DateTimeFormatter.ofPattern("MMMM dd, yyyy"))
+    }
+}
+fun LocalDateTime.toFormattedTime() = format(DateTimeFormatter.ofPattern("hh:mm"))
 
 @Composable
 fun MainScreen(
     viewModel: MainScreenViewModel = viewModel(factory = MainScreenViewModel.Factory),
     modifier: Modifier = Modifier
 ) {
-    Column(modifier.fillMaxSize().padding(8.dp)) {
+    val uiState by viewModel.uiState.collectAsState()
+    Column(
+        modifier
+            .fillMaxSize()
+            .padding(8.dp)
+    ) {
 
-        val uiState by viewModel.uiState.collectAsState()
 
         val rateString = when (val rate = uiState.bitcoinRate) {
-            is RequestStatus.Success -> rate.response.toString()
+            is RequestStatus.Success -> rate.response.toFormattedNumber()
             else -> "---"
         }
         Text(text = rateString, modifier = Modifier.align(Alignment.End))
 
         val balanceString = when (val balance = uiState.balance) {
-            is RequestStatus.Success -> balance.response.toString()
+            is RequestStatus.Success -> balance.response.toFormattedNumber()
             else -> "----"
         }
-        BalanceComposable(balance = balanceString, {}, {})
+        BalanceComposable(balance = balanceString, onAddButtonClicked = {
+            viewModel.requireTopUpScreen(true)
+        }, {})
 
         if (uiState.transactions.isEmpty())
             Box(modifier = Modifier.fillMaxSize()) {
                 Text(
                     text = stringResource(id = R.string.empty_transactions_placeholder),
-                    modifier = Modifier.wrapContentSize().align(Alignment.Center)
+                    modifier = Modifier
+                        .wrapContentSize()
+                        .align(Alignment.Center)
                 )
             }
-        else
+        else {
             TransactionList(uiState.transactions)
+        }
     }
+    val dialogInput by viewModel.input.collectAsState()
+    if (uiState.topUpScreenRequired)
+        TopUpDialog(value = dialogInput,
+            onValueChange = { viewModel.updateInput(it) },
+            isInputValid = viewModel.validateInput(),
+            onTopUp = {
+                viewModel.topUp()
+                viewModel.updateInput("")
+                viewModel.requireTopUpScreen(false)
+            },
+            onDismiss = {
+                viewModel.updateInput("")
+                viewModel.requireTopUpScreen(false)
+            })
 }
 
 @Composable
 fun BalanceComposable(
     balance: String,
-    onTopUp: () -> Unit,
+    onAddButtonClicked: () -> Unit,
     onAddTransaction: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Column(modifier) {
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
             text = stringResource(id = R.string.balance),
             style = MaterialTheme.typography.headlineMedium
@@ -88,7 +128,7 @@ fun BalanceComposable(
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Text(text = balance, style = MaterialTheme.typography.displayMedium)
-            Button(onClick = onTopUp) {
+            Button(onClick = { onAddButtonClicked() }) {
                 Icon(
                     imageVector = Icons.Filled.Add,
                     contentDescription = stringResource(id = R.string.top_up),
@@ -115,12 +155,12 @@ fun BalanceComposable(
 fun TransactionList(transactions: List<Transaction>, modifier: Modifier = Modifier) {
     LazyColumn(modifier) {
         val transactionGroups = transactions.sortedByDescending(Transaction::dateTime)
-            .groupBy(Transaction::dateTime)
+            .groupBy{ it.dateTime.toLocalDate() }
 
         for ((date, groupTransactions) in transactionGroups) {
             item {
                 Text(
-                    text = date.toString(),
+                    text = date.toFormattedDate(),
                     style = MaterialTheme.typography.headlineSmall,
                     modifier = Modifier.padding(vertical = 8.dp)
                 )
@@ -175,7 +215,7 @@ fun TransactionListItem(
 
             Column(modifier = Modifier.padding(8.dp)) {
                 Text(
-                    text = transaction.amount.toString(),
+                    text = transaction.amount.toFormattedNumber(),
                     style = MaterialTheme.typography.bodyLarge
                 )
                 Row(
@@ -187,13 +227,44 @@ fun TransactionListItem(
                         text = transactionCategoryName,
                         style = MaterialTheme.typography.titleSmall
                     )
-                    Text(text = "12:15", style = MaterialTheme.typography.bodyMedium)
+                    Text(text = transaction.dateTime.toFormattedTime(), style = MaterialTheme.typography.bodyMedium)
                 }
             }
 
         }
         if (addDivider) Divider()
     }
+}
+
+
+@Composable
+private fun TopUpDialog(
+    isInputValid: Boolean,
+    value: String,
+    onValueChange: (String) -> Unit,
+    onTopUp: () -> Unit,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    AlertDialog(onDismissRequest = onDismiss,
+
+        title = { Text(stringResource(R.string.top_up)) },
+        text = {
+            OutlinedTextField(value = value, onValueChange = onValueChange, isError = !isInputValid, label = {
+                Text(stringResource(R.string.enter_amount))
+            })
+        },
+        modifier = modifier,
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.cancel))
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onTopUp, enabled = isInputValid) {
+                Text(stringResource(R.string.top_up))
+            }
+        })
 }
 
 @Preview(showBackground = true)
