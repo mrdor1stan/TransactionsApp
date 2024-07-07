@@ -2,55 +2,134 @@ package com.example.transactionsapp.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material3.Button
 import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.example.transactionsapp.data.Category
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.transactionsapp.R
+import com.example.transactionsapp.data.RequestStatus
 import com.example.transactionsapp.data.Transaction
 import com.example.transactionsapp.ui.theme.TransactionsAppTheme
-import java.util.Date
-import java.util.UUID
 
 
 @Composable
-fun MainScreen(rate: String, transactions: List<Transaction>, modifier: Modifier = Modifier) {
+fun MainScreen(
+    viewModel: MainScreenViewModel = viewModel(factory = MainScreenViewModel.Factory),
+    modifier: Modifier = Modifier
+) {
+    Column(modifier.fillMaxSize().padding(8.dp)) {
+
+        val uiState by viewModel.uiState.collectAsState()
+
+        val rateString = when (val rate = uiState.bitcoinRate) {
+            is RequestStatus.Success -> rate.response.toString()
+            else -> "---"
+        }
+        Text(text = rateString, modifier = Modifier.align(Alignment.End))
+
+        val balanceString = when (val balance = uiState.balance) {
+            is RequestStatus.Success -> balance.response.toString()
+            else -> "----"
+        }
+        BalanceComposable(balance = balanceString, {}, {})
+
+        if (uiState.transactions.isEmpty())
+            Box(modifier = Modifier.fillMaxSize()) {
+                Text(
+                    text = stringResource(id = R.string.empty_transactions_placeholder),
+                    modifier = Modifier.wrapContentSize().align(Alignment.Center)
+                )
+            }
+        else
+            TransactionList(uiState.transactions)
+    }
+}
+
+@Composable
+fun BalanceComposable(
+    balance: String,
+    onTopUp: () -> Unit,
+    onAddTransaction: () -> Unit,
+    modifier: Modifier = Modifier
+) {
     Column(modifier) {
-        Text(text = rate)
-        TransactionList(transactions)
+        Text(
+            text = stringResource(id = R.string.balance),
+            style = MaterialTheme.typography.headlineMedium
+        )
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Text(text = balance, style = MaterialTheme.typography.displayMedium)
+            Button(onClick = onTopUp) {
+                Icon(
+                    imageVector = Icons.Filled.Add,
+                    contentDescription = stringResource(id = R.string.top_up),
+                    modifier = Modifier
+                        .padding(8.dp)
+                        .background(
+                            color = MaterialTheme.colorScheme.primary,
+                            shape = MaterialTheme.shapes.extraLarge
+                        ),
+                    tint = MaterialTheme.colorScheme.onPrimary
+                )
+            }
+        }
+        Button(onClick = onAddTransaction) {
+            Text(
+                text = stringResource(id = R.string.add_transaction),
+                style = MaterialTheme.typography.labelLarge
+            )
+        }
     }
 }
 
 @Composable
 fun TransactionList(transactions: List<Transaction>, modifier: Modifier = Modifier) {
-    LazyColumn (modifier) {
+    LazyColumn(modifier) {
         val transactionGroups = transactions.sortedByDescending(Transaction::dateTime)
             .groupBy(Transaction::dateTime)
 
         for ((date, groupTransactions) in transactionGroups) {
             item {
-                Text(text = date.toString(), style = MaterialTheme.typography.headlineSmall, modifier = Modifier.padding(vertical = 8.dp))
+                Text(
+                    text = date.toString(),
+                    style = MaterialTheme.typography.headlineSmall,
+                    modifier = Modifier.padding(vertical = 8.dp)
+                )
             }
-            itemsIndexed(items = groupTransactions) {index, item ->
-                TransactionListItem(transaction = item, addDivider = index != groupTransactions.size-1)
+            itemsIndexed(items = groupTransactions) { index, item ->
+                TransactionListItem(
+                    transaction = item,
+                    addDivider = index != groupTransactions.size - 1
+                )
             }
             item {
                 Spacer(modifier = Modifier.height(16.dp))
@@ -60,7 +139,11 @@ fun TransactionList(transactions: List<Transaction>, modifier: Modifier = Modifi
 }
 
 @Composable
-fun TransactionListItem(transaction: Transaction, addDivider: Boolean = true, modifier: Modifier = Modifier) {
+fun TransactionListItem(
+    transaction: Transaction,
+    addDivider: Boolean = true,
+    modifier: Modifier = Modifier
+) {
     Column(modifier = modifier) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -109,7 +192,7 @@ fun TransactionListItem(transaction: Transaction, addDivider: Boolean = true, mo
             }
 
         }
-        if(addDivider) Divider()
+        if (addDivider) Divider()
     }
 }
 
@@ -122,7 +205,7 @@ fun MainScreenPreview() {
             modifier = Modifier.fillMaxWidth(),
             color = MaterialTheme.colorScheme.background
         ) {
-            TransactionList(transactions = transactionsMockList)
+            MainScreen()
         }
     }
 }
