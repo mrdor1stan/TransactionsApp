@@ -14,8 +14,10 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -27,40 +29,39 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.transactionsapp.R
 import com.example.transactionsapp.data.Category
 import com.example.transactionsapp.ui.theme.TransactionsAppTheme
+import kotlinx.coroutines.launch
 
 
 @Composable
 fun AddTransactionScreen(
+    navigateBack: () -> Unit,
     viewModel: AddTransactionScreenViewModel = viewModel(factory = AddTransactionScreenViewModel.Factory),
     modifier: Modifier = Modifier) {
+    val uiState by viewModel.transactionUiState.collectAsState()
+    val coroutineScope = rememberCoroutineScope()
     Column (
         modifier
             .fillMaxSize()
             .padding(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        OutlinedTextField(value = "", onValueChange = {}, label = { Text(text = stringResource(id = R.string.enter_amount)) },
+        OutlinedTextField(value = uiState.amountInput,
+            onValueChange = {viewModel.updateInput(it)},
+            isError = !viewModel.validateInput(),
+            label = { Text(text = stringResource(id = R.string.enter_amount)) },
             modifier = Modifier.fillMaxWidth())
         Text(text = stringResource(id = R.string.choose_category))
-        CategoryRadioButtonsList(options = Category.entries.toList(), modifier = Modifier.fillMaxWidth())
-        Button(onClick = { /*TODO*/ }, ) {
+        CategoryRadioButtonsList(options = Category.entries.toList(),
+            onSelectionChanged = { viewModel.updateCategory(it) },
+            modifier = Modifier.fillMaxWidth())
+        Button(onClick = {
+            coroutineScope.launch {
+                viewModel.insertTransaction()
+                navigateBack()
+            }
+        }, enabled = viewModel.validateInput(), modifier = Modifier.padding(16.dp).align(Alignment.CenterHorizontally)) {
             Text(text = stringResource(id = R.string.add))
         }
     }
 }
-
-@Preview(showBackground = true)
-@Composable
-fun ScreenPreview(){
-    TransactionsAppTheme {
-        // A surface container using the 'background' color from the theme
-        Surface(
-            modifier = Modifier.fillMaxSize(),
-            color = MaterialTheme.colorScheme.background
-        ) {
-            AddTransactionScreen()
-        }
-    }
-}
-
 
 @Composable
 fun CategoryRadioButtonsList(

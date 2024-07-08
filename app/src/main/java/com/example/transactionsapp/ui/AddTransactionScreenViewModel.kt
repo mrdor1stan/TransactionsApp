@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.AP
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.transactionsapp.TransactionsApplication
+import com.example.transactionsapp.data.Category
 import com.example.transactionsapp.data.Transaction
 import com.example.transactionsapp.data.TransactionsRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -14,36 +15,37 @@ import kotlinx.coroutines.flow.update
 import java.time.LocalDateTime
 import java.util.UUID
 
+
+data class TransactionUiState(val amountInput: String = "", val category: Category? = null)
+
 class AddTransactionScreenViewModel(
     val transactionsRepository: TransactionsRepository
 ) : ViewModel() {
 
-    private var _transaction = MutableStateFlow(
-        Transaction(id = UUID.randomUUID(),
-            amount = 0.0,
-            dateTime = LocalDateTime.now(),
-            category = null
-        )
+    private var _transactionUiState = MutableStateFlow(
+        TransactionUiState()
     )
-    val transaction = _transaction.asStateFlow()
-
-    private var _input = MutableStateFlow("")
-    val input = _input.asStateFlow()
+    val transactionUiState = _transactionUiState.asStateFlow()
 
     fun validateInput(): Boolean =
-        (input.value.toDoubleOrNull() ?: -1.0) > 0.0
+        transactionUiState.value.let {
+            (it.amountInput.toDoubleOrNull() ?: -1.0) > 0.0 && it.category != null
+        }
 
     fun updateInput(newInput: String) {
-        _input.update { newInput }
+        _transactionUiState.update { it.copy(amountInput = newInput) }
     }
 
+    fun updateCategory(category: Category) {
+        _transactionUiState.update { it.copy(category = category) }
+    }
 
     suspend fun insertTransaction() {
-        if (!validateInput() || transaction.value.category == null)
+        if (!validateInput() || transactionUiState.value.category == null)
             return
-        val amount = -input.value.toDouble()
+        val amount = -transactionUiState.value.amountInput.toDouble()
         val date = LocalDateTime.now()
-        val transaction = Transaction(UUID.randomUUID(), amount, date, category = null)
+        val transaction = Transaction(UUID.randomUUID(), amount, date, category = transactionUiState.value.category)
         transactionsRepository.insertTransaction(transaction)
     }
 
