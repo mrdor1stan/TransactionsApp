@@ -57,6 +57,7 @@ fun LocalDateTime.toFormattedTime() = format(DateTimeFormatter.ofPattern("hh:mm"
 
 @Composable
 fun MainScreen(
+    onAddTransactionClick: () -> Unit,
     viewModel: MainScreenViewModel = viewModel(factory = MainScreenViewModel.Factory),
     modifier: Modifier = Modifier
 ) {
@@ -66,8 +67,6 @@ fun MainScreen(
             .fillMaxSize()
             .padding(8.dp)
     ) {
-
-
         val rateString = when (val rate = uiState.bitcoinRate) {
             is RequestStatus.Success -> rate.response.toFormattedNumber()
             else -> "---"
@@ -80,7 +79,8 @@ fun MainScreen(
         }
         BalanceComposable(balance = balanceString, onAddButtonClicked = {
             viewModel.requireTopUpScreen(true)
-        }, {})
+        },
+            onAddTransaction = onAddTransactionClick)
 
         if (uiState.transactions.isEmpty())
             Box(modifier = Modifier.fillMaxSize()) {
@@ -265,19 +265,5 @@ private fun TopUpDialog(
                 Text(stringResource(R.string.top_up))
             }
         })
-}
-
-@Preview(showBackground = true)
-@Composable
-fun MainScreenPreview() {
-    TransactionsAppTheme {
-        // A surface container using the 'background' color from the theme
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            color = MaterialTheme.colorScheme.background
-        ) {
-            MainScreen()
-        }
-    }
 }
 

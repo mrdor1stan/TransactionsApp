@@ -23,13 +23,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.transactionsapp.R
 import com.example.transactionsapp.data.Category
 import com.example.transactionsapp.ui.theme.TransactionsAppTheme
 
 
 @Composable
-fun AddTransactionScreen(modifier: Modifier = Modifier) {
+fun AddTransactionScreen(
+    viewModel: AddTransactionScreenViewModel = viewModel(factory = AddTransactionScreenViewModel.Factory),
+    modifier: Modifier = Modifier) {
     Column (
         modifier
             .fillMaxSize()
