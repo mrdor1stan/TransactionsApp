@@ -53,6 +53,8 @@ interface TransactionsDao {
 
     @Query("SELECT SUM(amount) FROM transactions")
     fun getBalance(): Flow<Double>
+    @Query("SELECT COUNT(id) FROM transactions")
+    fun getTransactionsCount(): Flow<Int>
 }
 
 class TransactionsTypeConverters {

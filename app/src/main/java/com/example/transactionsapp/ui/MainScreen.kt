@@ -69,7 +69,7 @@ fun MainScreen(
             else -> "---"
         }
         Text(text = rateString, modifier = Modifier.align(Alignment.End))
-
+//        val currentPage = viewModel.currentTransactionsPage
         val balanceString = when (val balance = uiState.balance) {
             is RequestStatus.Success -> balance.response.toFormattedNumber()
             else -> "----"
@@ -92,7 +92,7 @@ fun MainScreen(
                 )
             }
         else {
-            TransactionList(uiState.transactions)
+            TransactionList(uiState.transactions, requestUpdate = {viewModel.loadTransactions()})
         }
     }
     val dialogInput by viewModel.input.collectAsState()
@@ -102,8 +102,9 @@ fun MainScreen(
             isInputValid = viewModel.validateInput(),
             onTopUp = {
                 viewModel.topUp()
-                viewModel.updateInput("")
                 viewModel.requireTopUpScreen(false)
+                viewModel.loadTransactions()
+                viewModel.updateInput("")
             },
             onDismiss = {
                 viewModel.updateInput("")
@@ -152,7 +153,7 @@ fun BalanceComposable(
 }
 
 @Composable
-fun TransactionList(transactions: List<Transaction>, modifier: Modifier = Modifier) {
+fun TransactionList(transactions: List<Transaction>, requestUpdate: () -> Unit, modifier: Modifier = Modifier) {
     LazyColumn(modifier) {
         val transactionGroups = transactions.sortedByDescending(Transaction::dateTime)
             .groupBy{ it.dateTime.toLocalDate() }
@@ -166,6 +167,8 @@ fun TransactionList(transactions: List<Transaction>, modifier: Modifier = Modifi
                 )
             }
             itemsIndexed(items = groupTransactions) { index, item ->
+//                if (date == transactionGroups.keys.last() && index == groupTransactions.size-1)
+//                    requestUpdate()
                 TransactionListItem(
                     transaction = item,
                     addDivider = index != groupTransactions.size - 1

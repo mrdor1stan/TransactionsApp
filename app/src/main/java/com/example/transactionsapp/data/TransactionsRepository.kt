@@ -10,17 +10,23 @@ interface TransactionsRepository {
     fun getTransaction(id: UUID): Flow<Transaction>
     fun getTransactions(limit: Int, offset: Int): Flow<List<Transaction>>
     fun getBalance(): Flow<Double>
+    fun getTransactionsCount(): Flow<Int>
 }
 
-class LocalTransactionRepository(private val transactionsDao: TransactionsDao): TransactionsRepository {
-    override suspend fun insertTransaction(transaction: Transaction) = transactionsDao.insert(transaction)
+class LocalTransactionRepository(private val transactionsDao: TransactionsDao) :
+    TransactionsRepository {
+    override suspend fun insertTransaction(transaction: Transaction) =
+        transactionsDao.insert(transaction)
 
-    override fun getAllTransactions(): Flow<List<Transaction>> = transactionsDao.getAllTransactions()
+    override fun getAllTransactions(): Flow<List<Transaction>> =
+        transactionsDao.getAllTransactions()
 
     override fun getTransaction(id: UUID): Flow<Transaction> = transactionsDao.getTransaction(id)
 
-    override fun getTransactions(limit: Int, offset: Int): Flow<List<Transaction>> = transactionsDao.getTransactions(limit = limit, offset = offset)
+    override fun getTransactions(limit: Int, offset: Int): Flow<List<Transaction>> =
+        transactionsDao.getTransactions(limit = limit, offset = offset)
 
     override fun getBalance(): Flow<Double> = transactionsDao.getBalance()
+    override fun getTransactionsCount(): Flow<Int> = transactionsDao.getTransactionsCount()
 
 }

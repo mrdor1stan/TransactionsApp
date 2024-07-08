@@ -1,8 +1,6 @@
 package com.example.transactionsapp.ui
 
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.APPLICATION_KEY
@@ -11,17 +9,15 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.transactionsapp.TransactionsApplication
 import com.example.transactionsapp.data.CurrencyRatesRepository
+import com.example.transactionsapp.data.RequestStatus
 import com.example.transactionsapp.data.Transaction
 import com.example.transactionsapp.data.TransactionsRepository
-import com.example.transactionsapp.data.RequestStatus
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.io.IOException
 import java.time.LocalDateTime
-import java.util.Calendar
-import java.util.Date
 import java.util.UUID
 
 data class MainScreenUiState(
@@ -48,14 +44,12 @@ class MainScreenViewModel(
 
     private var _input = MutableStateFlow("")
     val input = _input.asStateFlow()
-
     val uiState = _uiState.asStateFlow()
-    var transactionPage = 0
 
     init {
         updateBitcoinToDollarRate()
         updateBalance()
-        updateTransactions()
+        loadTransactions()
     }
 
     fun validateInput(): Boolean =
@@ -73,7 +67,6 @@ class MainScreenViewModel(
                         oldUiState.copy(balance = RequestStatus.Success(balance))
                     }
                 }
-            transactionPage++
         }
     }
 
@@ -88,15 +81,13 @@ class MainScreenViewModel(
         }
     }
 
-    fun updateTransactions() {
+    fun loadTransactions() {
         viewModelScope.launch {
-            transactionsRepository.getTransactions(TRANSACTIONS_ON_PAGE, transactionPage)
-                .collect { collectedTransactions ->
-                    _uiState.update { oldUiState ->
-                        oldUiState.copy(transactions = collectedTransactions)
-                    }
+            transactionsRepository.getAllTransactions().collect { collectedTransactions ->
+                        _uiState.update { oldUiState ->
+                            oldUiState.copy(transactions = collectedTransactions)
+                        }
                 }
-            transactionPage++
         }
     }
 
