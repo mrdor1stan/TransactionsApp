@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -35,6 +34,10 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.paging.compose.LazyPagingItems
+import androidx.paging.compose.collectAsLazyPagingItems
+import androidx.paging.compose.itemContentType
+import androidx.paging.compose.itemKey
 import com.example.transactionsapp.R
 import com.example.transactionsapp.data.RequestStatus
 import com.example.transactionsapp.data.Transaction
@@ -53,7 +56,10 @@ fun LocalDate.toFormattedDate(): String {
         else -> format(DateTimeFormatter.ofPattern("MMMM dd, yyyy"))
     }
 }
+
 fun LocalDateTime.toFormattedTime() = format(DateTimeFormatter.ofPattern("hh:mm"))
+fun Transaction.getFormattedDate() = dateTime.toLocalDate().toFormattedDate()
+
 
 @Composable
 fun MainScreen(
@@ -62,6 +68,9 @@ fun MainScreen(
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val transactionsLazyPagingItems: LazyPagingItems<Transaction> =
+        viewModel.transactions.collectAsLazyPagingItems()
+
     Column(
         modifier
             .fillMaxSize()
@@ -77,16 +86,17 @@ fun MainScreen(
             is RequestStatus.Success -> balance.response.toFormattedNumber()
             else -> "----"
         }
-        BalanceComposable(balance = balanceString, onAddButtonClicked = {
-            viewModel.requireTopUpScreen(true)
-        },
-            onAddTransaction = onAddTransactionClick)
+        BalanceComposable(
+            balance = balanceString, onAddButtonClicked = {
+                viewModel.requireTopUpScreen(true)
+            },
+            onAddTransaction = onAddTransactionClick
+        )
 
         Spacer(modifier = Modifier.height(8.dp))
         Divider()
-
-        if (uiState.transactions.isEmpty())
-            Box(modifier = Modifier.fillMaxSize()) {
+        if (transactionsLazyPagingItems.itemCount == 0) {
+            Box(modifier = modifier) {
                 Text(
                     text = stringResource(id = R.string.empty_transactions_placeholder),
                     modifier = Modifier
@@ -94,9 +104,9 @@ fun MainScreen(
                         .align(Alignment.Center)
                 )
             }
-        else {
-            TransactionList(uiState.transactions, requestUpdate = {viewModel.loadTransactions()})
-        }
+        } else
+            TransactionList(transactionsLazyPagingItems, modifier = Modifier.fillMaxSize())
+
     }
     val dialogInput by viewModel.input.collectAsState()
     if (uiState.topUpScreenRequired)
@@ -106,7 +116,7 @@ fun MainScreen(
             onTopUp = {
                 viewModel.topUp()
                 viewModel.requireTopUpScreen(false)
-                viewModel.loadTransactions()
+                //     viewModel.loadTransactions()
                 viewModel.updateInput("")
             },
             onDismiss = {
@@ -156,32 +166,32 @@ fun BalanceComposable(
 }
 
 @Composable
-fun TransactionList(transactions: List<Transaction>, requestUpdate: () -> Unit, modifier: Modifier = Modifier) {
+fun TransactionList(transactions: LazyPagingItems<Transaction>, modifier: Modifier = Modifier) {
     LazyColumn(modifier) {
-        val transactionGroups = transactions.sortedByDescending(Transaction::dateTime)
-            .groupBy{ it.dateTime.toLocalDate() }
-
-        for ((date, groupTransactions) in transactionGroups) {
-            item {
-                Text(
-                    text = date.toFormattedDate(),
-                    style = MaterialTheme.typography.headlineSmall,
-                    modifier = Modifier.padding(vertical = 8.dp)
-                )
-            }
-            itemsIndexed(items = groupTransactions) { index, item ->
-//                if (date == transactionGroups.keys.last() && index == groupTransactions.size-1)
-//                    requestUpdate()
-                TransactionListItem(
-                    transaction = item,
-                    addDivider = index != groupTransactions.size - 1
-                )
-            }
-            item {
-                Spacer(modifier = Modifier.height(16.dp))
-            }
+        items(
+            count = transactions.itemCount,
+            key = transactions.itemKey { transaction -> transaction.id },
+            contentType = transactions.itemContentType { "transaction" }
+        ) { index: Int ->
+            val transaction = transactions[index]
+            val isStartOfGroup =
+                index == 0 || transactions[index]?.dateTime?.toLocalDate() != transactions[index - 1]?.dateTime?.toLocalDate()
+            transaction?.let {
+                if (isStartOfGroup) {
+                    Text(
+                        text = it.getFormattedDate(),
+                        style = MaterialTheme.typography.headlineSmall,
+                        modifier = Modifier.padding(vertical = 8.dp)
+                    )
+                }
+            TransactionListItem(
+                transaction = it,
+                addDivider = !isStartOfGroup
+            )
         }
     }
+}
+
 }
 
 @Composable
@@ -191,6 +201,7 @@ fun TransactionListItem(
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier) {
+        if (addDivider) Divider()
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
@@ -233,12 +244,14 @@ fun TransactionListItem(
                         text = transactionCategoryName,
                         style = MaterialTheme.typography.titleSmall
                     )
-                    Text(text = transaction.dateTime.toFormattedTime(), style = MaterialTheme.typography.bodyMedium)
+                    Text(
+                        text = transaction.dateTime.toFormattedTime(),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
                 }
             }
 
         }
-        if (addDivider) Divider()
     }
 }
 
@@ -256,12 +269,14 @@ private fun TopUpDialog(
 
         title = { Text(stringResource(R.string.top_up)) },
         text = {
-            OutlinedTextField(value = value, onValueChange = onValueChange, isError = !isInputValid, label = {
-                Text(stringResource(R.string.enter_amount))
-            }, keyboardOptions = KeyboardOptions.Default.copy(
-                keyboardType = KeyboardType.Number,
-                imeAction = ImeAction.Done
-            ))
+            OutlinedTextField(
+                value = value, onValueChange = onValueChange, isError = !isInputValid, label = {
+                    Text(stringResource(R.string.enter_amount))
+                }, keyboardOptions = KeyboardOptions.Default.copy(
+                    keyboardType = KeyboardType.Number,
+                    imeAction = ImeAction.Done
+                )
+            )
         },
         modifier = modifier,
         dismissButton = {

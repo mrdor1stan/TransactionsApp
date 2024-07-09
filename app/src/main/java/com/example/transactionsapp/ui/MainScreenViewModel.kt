@@ -1,17 +1,21 @@
 package com.example.transactionsapp.ui
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.APPLICATION_KEY
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import androidx.paging.Pager
+import androidx.paging.PagingConfig
+import androidx.paging.PagingData
+import androidx.paging.cachedIn
 import com.example.transactionsapp.TransactionsApplication
 import com.example.transactionsapp.data.CurrencyRatesRepository
 import com.example.transactionsapp.data.RequestStatus
 import com.example.transactionsapp.data.Transaction
 import com.example.transactionsapp.data.TransactionsRepository
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
@@ -23,11 +27,10 @@ import java.util.UUID
 data class MainScreenUiState(
     val bitcoinRate: RequestStatus,
     val balance: RequestStatus,
-    val transactions: List<Transaction>,
     val topUpScreenRequired: Boolean = false
 )
 
-private val TRANSACTIONS_ON_PAGE = 20
+private const val TRANSACTIONS_ON_PAGE = 20
 
 class MainScreenViewModel(
     val transactionsRepository: TransactionsRepository,
@@ -37,8 +40,7 @@ class MainScreenViewModel(
     private var _uiState = MutableStateFlow(
         MainScreenUiState(
             bitcoinRate = RequestStatus.Loading,
-            balance = RequestStatus.Loading,
-            transactions = listOf()
+            balance = RequestStatus.Loading
         )
     )
 
@@ -46,10 +48,13 @@ class MainScreenViewModel(
     val input = _input.asStateFlow()
     val uiState = _uiState.asStateFlow()
 
+    val transactions: Flow<PagingData<Transaction>> = Pager(PagingConfig(pageSize = TRANSACTIONS_ON_PAGE)) {
+        transactionsRepository.getTransactions()
+    }.flow.cachedIn(viewModelScope)
+
     init {
         updateBitcoinToDollarRate()
         updateBalance()
-        loadTransactions()
     }
 
     fun validateInput(): Boolean =
@@ -78,16 +83,6 @@ class MainScreenViewModel(
         viewModelScope.launch {
             val transaction = Transaction(UUID.randomUUID(), amount, date, category = null)
             transactionsRepository.insertTransaction(transaction)
-        }
-    }
-
-    fun loadTransactions() {
-        viewModelScope.launch {
-            transactionsRepository.getAllTransactions().collect { collectedTransactions ->
-                        _uiState.update { oldUiState ->
-                            oldUiState.copy(transactions = collectedTransactions)
-                        }
-                }
         }
     }
 

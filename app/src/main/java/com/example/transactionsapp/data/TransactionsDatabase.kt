@@ -1,6 +1,7 @@
 package com.example.transactionsapp.data
 
 import android.content.Context
+import androidx.paging.PagingSource
 import androidx.room.Dao
 import androidx.room.Database
 import androidx.room.Insert
@@ -42,19 +43,14 @@ interface TransactionsDao {
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insert(transaction: Transaction)
 
-    @Query("SELECT * FROM transactions")
-    fun getAllTransactions(): Flow<List<Transaction>>
-
     @Query("SELECT * FROM transactions WHERE id=:id")
     fun getTransaction(id: UUID): Flow<Transaction>
 
-    @Query("SELECT * FROM transactions ORDER BY dateTime DESC LIMIT :limit OFFSET :offset")
-    fun getTransactions(limit: Int, offset: Int): Flow<List<Transaction>>
+    @Query("SELECT * FROM transactions ORDER BY dateTime DESC")
+    fun getTransactions(): PagingSource<Int, Transaction>
 
     @Query("SELECT SUM(amount) FROM transactions")
     fun getBalance(): Flow<Double>
-    @Query("SELECT COUNT(id) FROM transactions")
-    fun getTransactionsCount(): Flow<Int>
 }
 
 class TransactionsTypeConverters {
