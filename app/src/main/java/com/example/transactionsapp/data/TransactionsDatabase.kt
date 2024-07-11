@@ -14,25 +14,25 @@ import androidx.room.TypeConverters
 import kotlinx.coroutines.flow.Flow
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
-import java.util.UUID
 
-@Database(entities = [Transaction::class], version = 1)
+@Database(entities = [Transaction::class], version = 1, exportSchema = false)
 @TypeConverters(TransactionsTypeConverters::class)
 abstract class TransactionsDatabase : RoomDatabase() {
     abstract fun transactionDao(): TransactionsDao
 
     companion object {
         @Volatile
-        private var Instance: TransactionsDatabase? = null
+        private var instance: TransactionsDatabase? = null
         private const val DATABASE_NAME = "transactions_db"
 
         fun getDatabase(context: Context): TransactionsDatabase {
             // if the Instance is not null, return it, otherwise create a new database instance.
-            return Instance ?: synchronized(this) {
-                Room.databaseBuilder(context, TransactionsDatabase::class.java, DATABASE_NAME)
+            return instance ?: synchronized(this) {
+                Room
+                    .databaseBuilder(context, TransactionsDatabase::class.java, DATABASE_NAME)
                     .fallbackToDestructiveMigration()
                     .build()
-                    .also { Instance = it }
+                    .also { instance = it }
             }
         }
     }
@@ -43,9 +43,6 @@ interface TransactionsDao {
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insert(transaction: Transaction)
 
-    @Query("SELECT * FROM transactions WHERE id=:id")
-    fun getTransaction(id: UUID): Flow<Transaction>
-
     @Query("SELECT * FROM transactions ORDER BY dateTime DESC")
     fun getTransactions(): PagingSource<Int, Transaction>
 
@@ -53,14 +50,11 @@ interface TransactionsDao {
     fun getBalance(): Flow<Double>
 }
 
+@TypeConverters
 class TransactionsTypeConverters {
     @TypeConverter
-    fun fromLocalDateTime(date: LocalDateTime): String {
-        return date.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
-    }
+    fun fromLocalDateTime(date: LocalDateTime): String = date.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
 
     @TypeConverter
-    fun toLocalDateTime(dateString: String): LocalDateTime {
-        return LocalDateTime.parse(dateString, DateTimeFormatter.ISO_LOCAL_DATE_TIME)
-    }
+    fun toLocalDateTime(dateString: String): LocalDateTime = LocalDateTime.parse(dateString, DateTimeFormatter.ISO_LOCAL_DATE_TIME)
 }

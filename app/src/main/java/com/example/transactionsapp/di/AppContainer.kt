@@ -15,12 +15,16 @@ interface AppContainer {
     val currencyRatesRepository: CurrencyRatesRepository
 }
 
-class DefaultAppContainer(private val context: Context) : AppContainer {
+class DefaultAppContainer(
+    private val context: Context,
+) : AppContainer {
     private val baseUrl = "https://api.coindesk.com/v1/bpi/"
-    private val retrofit = Retrofit.Builder()
-        .addConverterFactory(GsonConverterFactory.create())
-        .baseUrl(baseUrl)
-        .build()
+    private val retrofit =
+        Retrofit
+            .Builder()
+            .addConverterFactory(GsonConverterFactory.create())
+            .baseUrl(baseUrl)
+            .build()
 
     private val retrofitService: CurrencyApiService by lazy {
         retrofit.create(CurrencyApiService::class.java)

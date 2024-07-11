@@ -35,13 +35,12 @@ import com.example.transactionsapp.data.Category
 import com.example.transactionsapp.ui.utils.TransactionsAppPositioning
 import kotlinx.coroutines.launch
 
-
 @Composable
 fun AddTransactionScreen(
     positioning: TransactionsAppPositioning,
     navigateBack: () -> Unit,
     viewModel: AddTransactionScreenViewModel = viewModel(factory = AddTransactionScreenViewModel.Factory),
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val uiState by viewModel.transactionUiState.collectAsState()
     val coroutineScope = rememberCoroutineScope()
@@ -52,14 +51,14 @@ fun AddTransactionScreen(
                 .fillMaxSize()
                 .padding(8.dp)
                 .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             AddTransactionForm(
                 inputValue = uiState.amountInput,
                 onInputValueChanged = { viewModel.updateInput(it) },
                 isErrorInput = !viewModel.validateInput(),
                 onCategorySelected = { viewModel.updateCategory(it) },
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier.fillMaxSize(),
             )
             AddTransactionButton(
                 onClick = {
@@ -67,25 +66,30 @@ fun AddTransactionScreen(
                         viewModel.insertTransaction()
                         navigateBack()
                     }
-                }, enabled = viewModel.validateInput(), modifier = Modifier
-                    .padding(16.dp)
-                    .align(Alignment.CenterHorizontally)
+                },
+                enabled = viewModel.validateInput(),
+                modifier =
+                    Modifier
+                        .padding(16.dp)
+                        .align(Alignment.CenterHorizontally),
             )
         }
     } else {
         Row(
-            modifier = modifier
-                .fillMaxSize()
-                .padding(8.dp)
+            modifier =
+                modifier
+                    .fillMaxSize()
+                    .padding(8.dp),
         ) {
             AddTransactionForm(
                 inputValue = uiState.amountInput,
                 onInputValueChanged = { viewModel.updateInput(it) },
                 isErrorInput = !viewModel.validateInput(),
                 onCategorySelected = { viewModel.updateCategory(it) },
-                modifier = Modifier
-                    .verticalScroll(rememberScrollState())
-                    .weight(3f)
+                modifier =
+                    Modifier
+                        .verticalScroll(rememberScrollState())
+                        .weight(3f),
             )
             Box(Modifier.weight(1f).fillMaxHeight()) {
                 AddTransactionButton(
@@ -94,9 +98,12 @@ fun AddTransactionScreen(
                             viewModel.insertTransaction()
                             navigateBack()
                         }
-                    }, enabled = viewModel.validateInput(), modifier = Modifier
-                        .padding(16.dp)
-                        .align(Alignment.CenterEnd)
+                    },
+                    enabled = viewModel.validateInput(),
+                    modifier =
+                        Modifier
+                            .padding(16.dp)
+                            .align(Alignment.CenterEnd),
                 )
             }
         }
@@ -104,9 +111,15 @@ fun AddTransactionScreen(
 }
 
 @Composable
-fun AddTransactionButton(onClick: () -> Unit, enabled: Boolean, modifier: Modifier = Modifier) {
+fun AddTransactionButton(
+    onClick: () -> Unit,
+    enabled: Boolean,
+    modifier: Modifier = Modifier,
+) {
     Button(
-        onClick = onClick, enabled = enabled, modifier = modifier
+        onClick = onClick,
+        enabled = enabled,
+        modifier = modifier,
     ) {
         Text(text = stringResource(id = R.string.add))
     }
@@ -118,66 +131,64 @@ fun AddTransactionForm(
     onInputValueChanged: (String) -> Unit,
     isErrorInput: Boolean,
     onCategorySelected: (Category) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
-
-
     Column(
         modifier = modifier.padding(8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         OutlinedTextField(
             value = inputValue,
             onValueChange = onInputValueChanged,
             isError = isErrorInput,
             label = { Text(text = stringResource(id = R.string.enter_amount)) },
-            keyboardOptions = KeyboardOptions.Default.copy(
-                keyboardType = KeyboardType.Number,
-                imeAction = ImeAction.Done
-            ),
-            modifier = Modifier.fillMaxWidth()
+            keyboardOptions =
+                KeyboardOptions.Default.copy(
+                    keyboardType = KeyboardType.Number,
+                    imeAction = ImeAction.Done,
+                ),
+            modifier = Modifier.fillMaxWidth(),
         )
         Text(text = stringResource(id = R.string.choose_category))
         CategoryRadioButtonsList(
             options = Category.entries.toList(),
             onSelectionChanged = onCategorySelected,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
         )
     }
-
-
 }
 
 @Composable
 fun CategoryRadioButtonsList(
     options: List<Category>,
     onSelectionChanged: (Category) -> Unit = {},
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     var selectedValue by rememberSaveable { mutableStateOf<Category?>(null) }
 
     Column(
         modifier = modifier,
-        verticalArrangement = Arrangement.SpaceBetween
+        verticalArrangement = Arrangement.SpaceBetween,
     ) {
         Column(modifier = Modifier.padding(8.dp)) {
             options.forEach { item ->
                 Row(
-                    modifier = Modifier.selectable(
-                        selected = selectedValue == item,
-                        onClick = {
-                            selectedValue = item
-                            onSelectionChanged(item)
-                        }
-                    ),
-                    verticalAlignment = Alignment.CenterVertically
+                    modifier =
+                        Modifier.selectable(
+                            selected = selectedValue == item,
+                            onClick = {
+                                selectedValue = item
+                                onSelectionChanged(item)
+                            },
+                        ),
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
                     RadioButton(
                         selected = selectedValue == item,
                         onClick = {
                             selectedValue = item
                             onSelectionChanged(item)
-                        }
+                        },
                     )
                     Text(item.name)
                 }
@@ -185,4 +196,3 @@ fun CategoryRadioButtonsList(
         }
     }
 }
-

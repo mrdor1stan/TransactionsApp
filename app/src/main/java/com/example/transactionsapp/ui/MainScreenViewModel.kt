@@ -27,38 +27,38 @@ import java.util.UUID
 data class MainScreenUiState(
     val bitcoinRate: RequestStatus,
     val balance: RequestStatus,
-    val topUpScreenRequired: Boolean = false
+    val topUpScreenRequired: Boolean = false,
 )
 
 private const val TRANSACTIONS_ON_PAGE = 20
 
 class MainScreenViewModel(
     val transactionsRepository: TransactionsRepository,
-    val currencyRatesRepository: CurrencyRatesRepository
+    val currencyRatesRepository: CurrencyRatesRepository,
 ) : ViewModel() {
-
-    private var _uiState = MutableStateFlow(
-        MainScreenUiState(
-            bitcoinRate = RequestStatus.Loading,
-            balance = RequestStatus.Loading
+    private var _uiState =
+        MutableStateFlow(
+            MainScreenUiState(
+                bitcoinRate = RequestStatus.Loading,
+                balance = RequestStatus.Loading,
+            ),
         )
-    )
 
     private var _input = MutableStateFlow("")
     val input = _input.asStateFlow()
     val uiState = _uiState.asStateFlow()
 
-    val transactions: Flow<PagingData<Transaction>> = Pager(PagingConfig(pageSize = TRANSACTIONS_ON_PAGE)) {
-        transactionsRepository.getTransactions()
-    }.flow.cachedIn(viewModelScope)
+    val transactions: Flow<PagingData<Transaction>> =
+        Pager(PagingConfig(pageSize = TRANSACTIONS_ON_PAGE)) {
+            transactionsRepository.getTransactions()
+        }.flow.cachedIn(viewModelScope)
 
     init {
         updateBitcoinToDollarRate()
         updateBalance()
     }
 
-    fun validateInput(): Boolean =
-        (input.value.toDoubleOrNull() ?: -1.0) > 0.0
+    fun validateInput(): Boolean = (input.value.toDoubleOrNull() ?: -1.0) > 0.0
 
     fun updateInput(newInput: String) {
         _input.update { newInput }
@@ -66,7 +66,8 @@ class MainScreenViewModel(
 
     private fun updateBalance() {
         viewModelScope.launch {
-            transactionsRepository.getBalance()
+            transactionsRepository
+                .getBalance()
                 .collect { balance ->
                     _uiState.update { oldUiState ->
                         oldUiState.copy(balance = RequestStatus.Success(balance))
@@ -76,8 +77,9 @@ class MainScreenViewModel(
     }
 
     fun topUp() {
-        if (!validateInput())
+        if (!validateInput()) {
             return
+        }
         val amount = input.value.toDouble()
         val date = LocalDateTime.now()
         viewModelScope.launch {
@@ -102,18 +104,19 @@ class MainScreenViewModel(
     }
 
     companion object {
-        val Factory: ViewModelProvider.Factory = viewModelFactory {
-            initializer {
-                val application = (this[APPLICATION_KEY] as TransactionsApplication)
-                val transactionsRepository: TransactionsRepository =
-                    application.container.transactionsRepository
-                val currencyRatesRepository: CurrencyRatesRepository =
-                    application.container.currencyRatesRepository
-                MainScreenViewModel(
-                    transactionsRepository = transactionsRepository,
-                    currencyRatesRepository = currencyRatesRepository
-                )
+        val Factory: ViewModelProvider.Factory =
+            viewModelFactory {
+                initializer {
+                    val application = (this[APPLICATION_KEY] as TransactionsApplication)
+                    val transactionsRepository: TransactionsRepository =
+                        application.container.transactionsRepository
+                    val currencyRatesRepository: CurrencyRatesRepository =
+                        application.container.currencyRatesRepository
+                    MainScreenViewModel(
+                        transactionsRepository = transactionsRepository,
+                        currencyRatesRepository = currencyRatesRepository,
+                    )
+                }
             }
-        }
     }
 }

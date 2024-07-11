@@ -15,16 +15,18 @@ import kotlinx.coroutines.flow.update
 import java.time.LocalDateTime
 import java.util.UUID
 
-
-data class TransactionUiState(val amountInput: String = "", val category: Category? = null)
+data class TransactionUiState(
+    val amountInput: String = "",
+    val category: Category? = null,
+)
 
 class AddTransactionScreenViewModel(
-    val transactionsRepository: TransactionsRepository
+    val transactionsRepository: TransactionsRepository,
 ) : ViewModel() {
-
-    private var _transactionUiState = MutableStateFlow(
-        TransactionUiState()
-    )
+    private var _transactionUiState =
+        MutableStateFlow(
+            TransactionUiState(),
+        )
     val transactionUiState = _transactionUiState.asStateFlow()
 
     fun validateInput(): Boolean =
@@ -41,8 +43,9 @@ class AddTransactionScreenViewModel(
     }
 
     suspend fun insertTransaction() {
-        if (!validateInput() || transactionUiState.value.category == null)
+        if (!validateInput() || transactionUiState.value.category == null) {
             return
+        }
         val amount = -transactionUiState.value.amountInput.toDouble()
         val date = LocalDateTime.now()
         val transaction = Transaction(UUID.randomUUID(), amount, date, category = transactionUiState.value.category)
@@ -50,15 +53,16 @@ class AddTransactionScreenViewModel(
     }
 
     companion object {
-        val Factory: ViewModelProvider.Factory = viewModelFactory {
-            initializer {
-                val application = (this[APPLICATION_KEY] as TransactionsApplication)
-                val transactionsRepository: TransactionsRepository =
-                    application.container.transactionsRepository
-                AddTransactionScreenViewModel(
-                    transactionsRepository = transactionsRepository
-                )
+        val Factory: ViewModelProvider.Factory =
+            viewModelFactory {
+                initializer {
+                    val application = (this[APPLICATION_KEY] as TransactionsApplication)
+                    val transactionsRepository: TransactionsRepository =
+                        application.container.transactionsRepository
+                    AddTransactionScreenViewModel(
+                        transactionsRepository = transactionsRepository,
+                    )
+                }
             }
-        }
     }
 }

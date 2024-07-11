@@ -1,7 +1,6 @@
 package com.example.transactionsapp.ui
 
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
 import androidx.compose.material3.windowsizeclass.WindowSizeClass
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
@@ -13,44 +12,46 @@ import androidx.navigation.compose.rememberNavController
 import com.example.transactionsapp.ui.utils.TransactionsAppPositioning
 
 enum class TransactionScreen {
-    Main, AddTransaction
+    Main,
+    AddTransaction,
 }
 
-@OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
 @Composable
 fun TransactionsApp(
     windowSizeClass: WindowSizeClass,
     navController: NavHostController = rememberNavController(),
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val windowWidthSizeClass = windowSizeClass.widthSizeClass
     val positioning =
-        if (windowWidthSizeClass == WindowWidthSizeClass.Expanded)
+        if (windowWidthSizeClass == WindowWidthSizeClass.Expanded) {
             TransactionsAppPositioning.Horizontal
-        else
+        } else {
             TransactionsAppPositioning.Vertical
+        }
     NavHost(
         navController = navController,
         startDestination = TransactionScreen.Main.name,
-        modifier = modifier
+        modifier = modifier,
     ) {
         composable(TransactionScreen.Main.name) {
             MainScreen(
                 positioning = positioning,
                 onAddTransactionClick = { navController.navigate(TransactionScreen.AddTransaction.name) },
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier.fillMaxSize(),
             )
         }
 
         composable(TransactionScreen.AddTransaction.name) {
-            AddTransactionScreen(positioning = positioning,
+            AddTransactionScreen(
+                positioning = positioning,
                 navigateBack = {
-                navController.popBackStack(
-                    route = TransactionScreen.Main.name,
-                    inclusive = false
-                )
-            })
+                    navController.popBackStack(
+                        route = TransactionScreen.Main.name,
+                        inclusive = false,
+                    )
+                },
+            )
         }
     }
-
 }
