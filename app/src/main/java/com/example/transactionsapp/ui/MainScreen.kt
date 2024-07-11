@@ -5,11 +5,11 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.text.KeyboardOptions
@@ -41,6 +41,7 @@ import androidx.paging.compose.itemKey
 import com.example.transactionsapp.R
 import com.example.transactionsapp.data.RequestStatus
 import com.example.transactionsapp.data.Transaction
+import com.example.transactionsapp.ui.utils.TransactionsAppPositioning
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -57,12 +58,13 @@ fun LocalDate.toFormattedDate(): String {
     }
 }
 
-fun LocalDateTime.toFormattedTime() = format(DateTimeFormatter.ofPattern("hh:mm"))
+fun LocalDateTime.toFormattedTime(): String = format(DateTimeFormatter.ofPattern("hh:mm"))
 fun Transaction.getFormattedDate() = dateTime.toLocalDate().toFormattedDate()
 
 
 @Composable
 fun MainScreen(
+    positioning: TransactionsAppPositioning,
     onAddTransactionClick: () -> Unit,
     viewModel: MainScreenViewModel = viewModel(factory = MainScreenViewModel.Factory),
     modifier: Modifier = Modifier
@@ -70,44 +72,52 @@ fun MainScreen(
     val uiState by viewModel.uiState.collectAsState()
     val transactionsLazyPagingItems: LazyPagingItems<Transaction> =
         viewModel.transactions.collectAsLazyPagingItems()
-
-    Column(
-        modifier
-            .fillMaxSize()
-            .padding(8.dp)
-    ) {
-        val rateString = when (val rate = uiState.bitcoinRate) {
-            is RequestStatus.Success -> rate.response.toFormattedNumber()
-            else -> "---"
-        }
-        Text(text = rateString, modifier = Modifier.align(Alignment.End))
-//        val currentPage = viewModel.currentTransactionsPage
-        val balanceString = when (val balance = uiState.balance) {
-            is RequestStatus.Success -> balance.response.toFormattedNumber()
-            else -> "----"
-        }
-        BalanceComposable(
-            balance = balanceString, onAddButtonClicked = {
-                viewModel.requireTopUpScreen(true)
-            },
-            onAddTransaction = onAddTransactionClick
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-        Divider()
-        if (transactionsLazyPagingItems.itemCount == 0) {
-            Box(modifier = modifier) {
-                Text(
-                    text = stringResource(id = R.string.empty_transactions_placeholder),
-                    modifier = Modifier
-                        .wrapContentSize()
-                        .align(Alignment.Center)
-                )
-            }
-        } else
-            TransactionList(transactionsLazyPagingItems, modifier = Modifier.fillMaxSize())
-
+    val rateString = when (val rate = uiState.bitcoinRate) {
+        is RequestStatus.Success -> rate.response.toFormattedNumber()
+        else -> "---"
     }
+    val balanceString = when (val balance = uiState.balance) {
+        is RequestStatus.Success -> balance.response.toFormattedNumber()
+        else -> "----"
+    }
+
+
+    if (positioning == TransactionsAppPositioning.Vertical) {
+        Column(
+            modifier
+                .fillMaxSize()
+                .padding(8.dp)
+        ) {
+            BalanceComposable(
+                rate = rateString,
+                balance = balanceString, onAddButtonClicked = {
+                    viewModel.requireTopUpScreen(true)
+                },
+                onAddTransaction = onAddTransactionClick,
+                modifier = Modifier
+                    .padding(horizontal = 8.dp).padding(bottom = 8.dp).fillMaxWidth().wrapContentHeight()
+            )
+            Divider()
+            TransactionListOrPlaceholder(transactionsLazyPagingItems = transactionsLazyPagingItems)
+        }
+    } else {
+        Row(
+            modifier
+                .fillMaxSize()
+                .padding(8.dp)
+        ) {
+            BalanceComposable(
+                rate = rateString,
+                balance = balanceString, onAddButtonClicked = {
+                    viewModel.requireTopUpScreen(true)
+                },
+                onAddTransaction = onAddTransactionClick,
+                modifier = modifier.padding(8.dp).weight(2f)
+            )
+            TransactionListOrPlaceholder(transactionsLazyPagingItems = transactionsLazyPagingItems, modifier = modifier.padding(vertical = 8.dp, horizontal = 16.dp).weight(3f))
+        }
+    }
+
     val dialogInput by viewModel.input.collectAsState()
     if (uiState.topUpScreenRequired)
         TopUpDialog(value = dialogInput,
@@ -116,7 +126,6 @@ fun MainScreen(
             onTopUp = {
                 viewModel.topUp()
                 viewModel.requireTopUpScreen(false)
-                //     viewModel.loadTransactions()
                 viewModel.updateInput("")
             },
             onDismiss = {
@@ -126,13 +135,33 @@ fun MainScreen(
 }
 
 @Composable
+fun TransactionListOrPlaceholder(
+    transactionsLazyPagingItems: LazyPagingItems<Transaction>,
+    modifier: Modifier = Modifier
+) {
+    if (transactionsLazyPagingItems.itemCount == 0) {
+        Box(modifier) {
+            Text(
+                text = stringResource(id = R.string.empty_transactions_placeholder),
+                modifier = Modifier
+                    .wrapContentSize()
+                    .align(Alignment.Center)
+            )
+        }
+    } else
+        TransactionList(transactionsLazyPagingItems, modifier = modifier.fillMaxSize())
+}
+
+@Composable
 fun BalanceComposable(
+    rate: String,
     balance: String,
     onAddButtonClicked: () -> Unit,
     onAddTransaction: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(text = rate, modifier = Modifier.align(Alignment.End))
         Text(
             text = stringResource(id = R.string.balance),
             style = MaterialTheme.typography.headlineMedium
@@ -174,6 +203,7 @@ fun TransactionList(transactions: LazyPagingItems<Transaction>, modifier: Modifi
             contentType = transactions.itemContentType { "transaction" }
         ) { index: Int ->
             val transaction = transactions[index]
+            //If it's the first item on the list or the date doesn't match the previous item's date, then it needs a new header
             val isStartOfGroup =
                 index == 0 || transactions[index]?.dateTime?.toLocalDate() != transactions[index - 1]?.dateTime?.toLocalDate()
             transaction?.let {
@@ -184,13 +214,13 @@ fun TransactionList(transactions: LazyPagingItems<Transaction>, modifier: Modifi
                         modifier = Modifier.padding(vertical = 8.dp)
                     )
                 }
-            TransactionListItem(
-                transaction = it,
-                addDivider = !isStartOfGroup
-            )
+                TransactionListItem(
+                    transaction = it,
+                    addDivider = !isStartOfGroup
+                )
+            }
         }
     }
-}
 
 }
 
