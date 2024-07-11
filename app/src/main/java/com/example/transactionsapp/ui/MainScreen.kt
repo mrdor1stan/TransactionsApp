@@ -108,9 +108,7 @@ fun MainScreen(
         }
     } else {
         Row(
-            modifier
-                .fillMaxSize()
-                .padding(8.dp),
+            modifier.fillMaxSize(),
         ) {
             BalanceComposable(
                 rate = rateString,
@@ -119,11 +117,11 @@ fun MainScreen(
                     viewModel.requireTopUpScreen(true)
                 },
                 onAddTransaction = onAddTransactionClick,
-                modifier = modifier.padding(8.dp).weight(2f),
+                modifier = Modifier.padding(8.dp).weight(2f),
             )
             TransactionListOrPlaceholder(
                 transactionsLazyPagingItems = transactionsLazyPagingItems,
-                modifier = modifier.padding(vertical = 8.dp, horizontal = 16.dp).weight(3f),
+                modifier = Modifier.padding(horizontal = 8.dp).weight(3f),
             )
         }
     }
