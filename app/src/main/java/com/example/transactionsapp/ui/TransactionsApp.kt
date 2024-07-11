@@ -43,7 +43,8 @@ fun TransactionsApp(
         }
 
         composable(TransactionScreen.AddTransaction.name) {
-            AddTransactionScreen(navigateBack = {
+            AddTransactionScreen(positioning = positioning,
+                navigateBack = {
                 navController.popBackStack(
                     route = TransactionScreen.Main.name,
                     inclusive = false
