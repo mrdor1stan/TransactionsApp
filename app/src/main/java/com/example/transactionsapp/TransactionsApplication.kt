@@ -2,7 +2,6 @@ package com.example.transactionsapp
 
 import android.app.Application
 import android.content.Context
-import android.util.Log
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStore
@@ -25,7 +24,6 @@ private const val RATES_PREFERENCE_NAME = "rates_preferences"
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(
     name = RATES_PREFERENCE_NAME,
 )
-private const val TAG = "TransactionsApplication"
 
 private fun getLifecycleEventObserver(
     onAppForegrounded: () -> Unit,
@@ -49,37 +47,27 @@ class TransactionsApplication : Application() {
         ProcessLifecycleOwner.get().lifecycle.addObserver(
             getLifecycleEventObserver(
                 onAppBackgrounded = {
-                    Log.d(TAG, "onAppBackground")
                     coroutineScope?.cancel()
                 },
                 onAppForegrounded = {
                     coroutineScope = CoroutineScope(Dispatchers.IO)
-                    Log.d(TAG, "onAppForeground")
                     coroutineScope!!.launch {
-                        Log.d(TAG, "coroutine launched")
                         container.ratesPreferencesRepository.rate.collect { (_, lastUpdate) ->
-                            Log.d(TAG, "flow collected")
                             val currentDateTime = LocalDateTime.now()
                             // if there were no updates prior to this or 1 hour passed
                             if (
                                 lastUpdate == null ||
                                 ChronoUnit.HOURS.between(lastUpdate, currentDateTime) >= 1
                             ) {
-                                Log.d(TAG, "there were no updates prior to this or 1 hour passed")
                                 // make a request
                                 val rateResult = getBitcoinToDollarRate(container.currencyRatesRepository)
                                 // save its result if it's successful
                                 if (rateResult is RequestStatus.Success) {
-                                    Log.d(TAG, "save its result if it's successful")
                                     container.ratesPreferencesRepository.saveRatesPreferences(
                                         dollarRate = rateResult.response,
                                         rateUpdateDateTime = currentDateTime,
                                     )
-                                } else {
-                                    Log.d(TAG, "result ain't success")
                                 }
-                            } else {
-                                Log.d(TAG, "1 hour didn't pass")
                             }
                         }
                     }
