@@ -19,8 +19,8 @@ enum class TransactionScreen {
 @Composable
 fun TransactionsApp(
     windowSizeClass: WindowSizeClass,
-    navController: NavHostController = rememberNavController(),
     modifier: Modifier = Modifier,
+    navController: NavHostController = rememberNavController(),
 ) {
     val windowWidthSizeClass = windowSizeClass.widthSizeClass
     val positioning =

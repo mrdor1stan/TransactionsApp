@@ -39,8 +39,8 @@ import kotlinx.coroutines.launch
 fun AddTransactionScreen(
     positioning: TransactionsAppPositioning,
     navigateBack: () -> Unit,
-    viewModel: AddTransactionScreenViewModel = viewModel(factory = AddTransactionScreenViewModel.Factory),
     modifier: Modifier = Modifier,
+    viewModel: AddTransactionScreenViewModel = viewModel(factory = AddTransactionScreenViewModel.Factory),
 ) {
     val uiState by viewModel.transactionUiState.collectAsState()
     val coroutineScope = rememberCoroutineScope()
@@ -161,7 +161,7 @@ fun AddTransactionForm(
 @Composable
 fun CategoryRadioButtonsList(
     options: List<Category>,
-    onSelectionChanged: (Category) -> Unit = {},
+    onSelectionChanged: (Category) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var selectedValue by rememberSaveable { mutableStateOf<Category?>(null) }

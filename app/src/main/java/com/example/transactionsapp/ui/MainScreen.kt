@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -66,8 +67,8 @@ fun Transaction.getFormattedDate() = dateTime.toLocalDate().toFormattedDate()
 fun MainScreen(
     positioning: TransactionsAppPositioning,
     onAddTransactionClick: () -> Unit,
-    viewModel: MainScreenViewModel = viewModel(factory = MainScreenViewModel.Factory),
     modifier: Modifier = Modifier,
+    viewModel: MainScreenViewModel = viewModel(factory = MainScreenViewModel.Factory),
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val transactionsLazyPagingItems: LazyPagingItems<Transaction> =
@@ -104,7 +105,7 @@ fun MainScreen(
                         .wrapContentHeight(),
             )
             Divider()
-            TransactionListOrPlaceholder(transactionsLazyPagingItems = transactionsLazyPagingItems)
+            TransactionListOrPlaceholder(transactionsLazyPagingItems = transactionsLazyPagingItems, modifier = Modifier.fillMaxSize())
         }
     } else {
         Row(
@@ -121,7 +122,7 @@ fun MainScreen(
             )
             TransactionListOrPlaceholder(
                 transactionsLazyPagingItems = transactionsLazyPagingItems,
-                modifier = Modifier.padding(horizontal = 8.dp).weight(3f),
+                modifier = Modifier.padding(horizontal = 8.dp).weight(3f).fillMaxHeight(),
             )
         }
     }
@@ -161,7 +162,7 @@ fun TransactionListOrPlaceholder(
             )
         }
     } else {
-        TransactionList(transactionsLazyPagingItems, modifier = modifier.fillMaxSize())
+        TransactionList(transactionsLazyPagingItems, modifier = modifier)
     }
 }
 
@@ -243,8 +244,8 @@ fun TransactionList(
 @Composable
 fun TransactionListItem(
     transaction: Transaction,
-    addDivider: Boolean = true,
     modifier: Modifier = Modifier,
+    addDivider: Boolean = true,
 ) {
     Column(modifier = modifier) {
         if (addDivider) Divider()
