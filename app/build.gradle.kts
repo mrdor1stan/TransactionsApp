@@ -83,4 +83,5 @@ dependencies {
     implementation("androidx.room:room-ktx:2.6.1")
     implementation("androidx.paging:paging-runtime-ktx:3.0.1")
     implementation("androidx.compose.material3:material3-window-size-class")
+    implementation("androidx.datastore:datastore-preferences:1.1.1")
 }
