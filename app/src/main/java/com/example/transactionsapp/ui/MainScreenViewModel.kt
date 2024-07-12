@@ -11,7 +11,7 @@ import androidx.paging.PagingConfig
 import androidx.paging.PagingData
 import androidx.paging.cachedIn
 import com.example.transactionsapp.TransactionsApplication
-import com.example.transactionsapp.data.CurrencyRatesRepository
+import com.example.transactionsapp.data.RatesPreferencesRepository
 import com.example.transactionsapp.data.RequestStatus
 import com.example.transactionsapp.data.Transaction
 import com.example.transactionsapp.data.TransactionsRepository
@@ -20,12 +20,12 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.io.IOException
 import java.time.LocalDateTime
 import java.util.UUID
 
 data class MainScreenUiState(
-    val bitcoinRate: RequestStatus,
+    val bitcoinRate: Double?,
+    val bitcoinRateUpdate: LocalDateTime? = null,
     val balance: RequestStatus,
     val topUpScreenRequired: Boolean = false,
 )
@@ -34,12 +34,12 @@ private const val TRANSACTIONS_ON_PAGE = 20
 
 class MainScreenViewModel(
     val transactionsRepository: TransactionsRepository,
-    val currencyRatesRepository: CurrencyRatesRepository,
+    val ratesPreferencesRepository: RatesPreferencesRepository,
 ) : ViewModel() {
     private var _uiState =
         MutableStateFlow(
             MainScreenUiState(
-                bitcoinRate = RequestStatus.Loading,
+                bitcoinRate = null,
                 balance = RequestStatus.Loading,
             ),
         )
@@ -52,6 +52,8 @@ class MainScreenViewModel(
         Pager(PagingConfig(pageSize = TRANSACTIONS_ON_PAGE)) {
             transactionsRepository.getTransactions()
         }.flow.cachedIn(viewModelScope)
+
+    val rate: Flow<Pair<Double?, LocalDateTime?>> = ratesPreferencesRepository.rate
 
     init {
         updateBitcoinToDollarRate()
@@ -90,11 +92,8 @@ class MainScreenViewModel(
 
     fun updateBitcoinToDollarRate() {
         viewModelScope.launch {
-            try {
-                val rate = currencyRatesRepository.getBitcoinToDollarRate()
-                _uiState.update { it.copy(bitcoinRate = RequestStatus.Success(rate)) }
-            } catch (e: IOException) {
-                _uiState.update { it.copy(bitcoinRate = RequestStatus.Error) }
+            rate.collect { (rate, lastUpdate) ->
+                _uiState.update { it.copy(bitcoinRate = rate, bitcoinRateUpdate = lastUpdate) }
             }
         }
     }
@@ -110,11 +109,11 @@ class MainScreenViewModel(
                     val application = (this[APPLICATION_KEY] as TransactionsApplication)
                     val transactionsRepository: TransactionsRepository =
                         application.container.transactionsRepository
-                    val currencyRatesRepository: CurrencyRatesRepository =
-                        application.container.currencyRatesRepository
+                    val ratesPreferencesRepository: RatesPreferencesRepository =
+                        application.container.ratesPreferencesRepository
                     MainScreenViewModel(
                         transactionsRepository = transactionsRepository,
-                        currencyRatesRepository = currencyRatesRepository,
+                        ratesPreferencesRepository = ratesPreferencesRepository,
                     )
                 }
             }

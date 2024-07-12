@@ -32,6 +32,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.paging.compose.LazyPagingItems
@@ -59,6 +60,8 @@ fun LocalDate.toFormattedDate(): String {
     }
 }
 
+fun LocalDateTime.toFormattedDateTime(): String = "${toLocalDate().toFormattedDate()}, ${toFormattedTime()}"
+
 fun LocalDateTime.toFormattedTime(): String = format(DateTimeFormatter.ofPattern("hh:mm"))
 
 fun Transaction.getFormattedDate() = dateTime.toLocalDate().toFormattedDate()
@@ -74,10 +77,10 @@ fun MainScreen(
     val transactionsLazyPagingItems: LazyPagingItems<Transaction> =
         viewModel.transactions.collectAsLazyPagingItems()
     val rateString =
-        when (val rate = uiState.bitcoinRate) {
-            is RequestStatus.Success -> rate.response.toFormattedNumber()
-            else -> "---"
-        }
+        uiState.bitcoinRate?.toFormattedNumber(3) ?: "Failed to load"
+    val rateUpdate =
+        uiState.bitcoinRateUpdate?.let { "Last updated: ${it.toFormattedDateTime()}" }
+            ?: "Connect to the Internet and reopen the app"
     val balanceString =
         when (val balance = uiState.balance) {
             is RequestStatus.Success -> balance.response.toFormattedNumber()
@@ -92,6 +95,7 @@ fun MainScreen(
         ) {
             BalanceComposable(
                 rate = rateString,
+                rateUpdate = rateUpdate,
                 balance = balanceString,
                 onAddButtonClicked = {
                     viewModel.requireTopUpScreen(true)
@@ -105,7 +109,10 @@ fun MainScreen(
                         .wrapContentHeight(),
             )
             Divider()
-            TransactionListOrPlaceholder(transactionsLazyPagingItems = transactionsLazyPagingItems, modifier = Modifier.fillMaxSize())
+            TransactionListOrPlaceholder(
+                transactionsLazyPagingItems = transactionsLazyPagingItems,
+                modifier = Modifier.fillMaxSize(),
+            )
         }
     } else {
         Row(
@@ -113,6 +120,7 @@ fun MainScreen(
         ) {
             BalanceComposable(
                 rate = rateString,
+                rateUpdate = rateUpdate,
                 balance = balanceString,
                 onAddButtonClicked = {
                     viewModel.requireTopUpScreen(true)
@@ -169,13 +177,21 @@ fun TransactionListOrPlaceholder(
 @Composable
 fun BalanceComposable(
     rate: String,
+    rateUpdate: String,
     balance: String,
     onAddButtonClicked: () -> Unit,
     onAddTransaction: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(text = rate, modifier = Modifier.align(Alignment.End))
+        Column(Modifier.fillMaxWidth()) {
+            Text(text = rate, modifier = Modifier.align(Alignment.End), textAlign = TextAlign.End)
+            Text(
+                text = rateUpdate,
+                modifier = Modifier.align(Alignment.End),
+                textAlign = TextAlign.End,
+            )
+        }
         Text(
             text = stringResource(id = R.string.balance),
             style = MaterialTheme.typography.headlineMedium,

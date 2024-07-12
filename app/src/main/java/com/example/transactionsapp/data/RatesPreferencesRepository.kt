@@ -43,6 +43,9 @@ class RatesPreferencesRepository(
                     throw it
                 }
             }.map { preferences ->
-                preferences[DOLLAR_RATE] to LocalDateTime.parse(preferences[RATE_UPDATE_DATE_TIME])
+                preferences[DOLLAR_RATE] to
+                    preferences[RATE_UPDATE_DATE_TIME]?.let {
+                        LocalDateTime.parse(it)
+                    }
             }
 }
