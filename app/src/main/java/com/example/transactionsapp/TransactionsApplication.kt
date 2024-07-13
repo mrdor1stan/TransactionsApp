@@ -56,8 +56,8 @@ class TransactionsApplication : Application() {
                             val currentDateTime = LocalDateTime.now()
                             // if there were no updates prior to this or 1 hour passed
                             if (
-                                lastUpdate == null ||
-                                ChronoUnit.HOURS.between(lastUpdate, currentDateTime) >= 1
+                                lastUpdate != null ||
+                                ChronoUnit.HOURS.between(lastUpdate, currentDateTime) < 1
                             ) {
                                 // make a request
                                 val rateResult = getBitcoinToDollarRate(container.currencyRatesRepository)
