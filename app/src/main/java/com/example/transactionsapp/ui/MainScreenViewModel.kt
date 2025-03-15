@@ -11,7 +11,6 @@ import androidx.paging.PagingConfig
 import androidx.paging.PagingData
 import androidx.paging.cachedIn
 import com.example.transactionsapp.TransactionsApplication
-import com.example.transactionsapp.data.RatesPreferencesRepository
 import com.example.transactionsapp.data.RequestStatus
 import com.example.transactionsapp.data.Transaction
 import com.example.transactionsapp.data.TransactionsRepository
@@ -24,8 +23,6 @@ import java.time.LocalDateTime
 import java.util.UUID
 
 data class MainScreenUiState(
-    val bitcoinRate: Double?,
-    val bitcoinRateUpdate: LocalDateTime? = null,
     val balance: RequestStatus,
     val topUpScreenRequired: Boolean = false,
 )
@@ -34,12 +31,10 @@ private const val TRANSACTIONS_ON_PAGE = 20
 
 class MainScreenViewModel(
     val transactionsRepository: TransactionsRepository,
-    val ratesPreferencesRepository: RatesPreferencesRepository,
 ) : ViewModel() {
     private var _uiState =
         MutableStateFlow(
             MainScreenUiState(
-                bitcoinRate = null,
                 balance = RequestStatus.Loading,
             ),
         )
@@ -53,10 +48,7 @@ class MainScreenViewModel(
             transactionsRepository.getTransactions()
         }.flow.cachedIn(viewModelScope)
 
-    val rate: Flow<Pair<Double?, LocalDateTime?>> = ratesPreferencesRepository.rate
-
     init {
-        updateBitcoinToDollarRate()
         updateBalance()
     }
 
@@ -90,14 +82,6 @@ class MainScreenViewModel(
         }
     }
 
-    fun updateBitcoinToDollarRate() {
-        viewModelScope.launch {
-            rate.collect { (rate, lastUpdate) ->
-                _uiState.update { it.copy(bitcoinRate = rate, bitcoinRateUpdate = lastUpdate) }
-            }
-        }
-    }
-
     fun requireTopUpScreen(enabled: Boolean) {
         _uiState.update { it.copy(topUpScreenRequired = enabled) }
     }
@@ -109,11 +93,8 @@ class MainScreenViewModel(
                     val application = (this[APPLICATION_KEY] as TransactionsApplication)
                     val transactionsRepository: TransactionsRepository =
                         application.container.transactionsRepository
-                    val ratesPreferencesRepository: RatesPreferencesRepository =
-                        application.container.ratesPreferencesRepository
                     MainScreenViewModel(
                         transactionsRepository = transactionsRepository,
-                        ratesPreferencesRepository = ratesPreferencesRepository,
                     )
                 }
             }

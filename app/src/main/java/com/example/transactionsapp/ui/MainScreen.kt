@@ -32,7 +32,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.paging.compose.LazyPagingItems
@@ -42,29 +41,6 @@ import androidx.paging.compose.itemKey
 import com.example.transactionsapp.R
 import com.example.transactionsapp.data.RequestStatus
 import com.example.transactionsapp.data.Transaction
-import com.example.transactionsapp.ui.utils.TransactionsAppPositioning
-import java.time.LocalDate
-import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
-
-fun Double.toFormattedNumber(decimal: Int = 2) = String.format("%.${decimal}f", this)
-
-fun LocalDate.toFormattedDate(): String {
-    val today = LocalDate.now()
-    val yesterday = today.minusDays(1)
-
-    return when (this) {
-        today -> "Today"
-        yesterday -> "Yesterday"
-        else -> format(DateTimeFormatter.ofPattern("MMMM dd, yyyy"))
-    }
-}
-
-fun LocalDateTime.toFormattedDateTime(): String = "${toLocalDate().toFormattedDate()}, ${toFormattedTime()}"
-
-fun LocalDateTime.toFormattedTime(): String = format(DateTimeFormatter.ofPattern("hh:mm"))
-
-fun Transaction.getFormattedDate() = dateTime.toLocalDate().toFormattedDate()
 
 @Composable
 fun MainScreen(
@@ -76,11 +52,6 @@ fun MainScreen(
     val uiState by viewModel.uiState.collectAsState()
     val transactionsLazyPagingItems: LazyPagingItems<Transaction> =
         viewModel.transactions.collectAsLazyPagingItems()
-    val rateString =
-        uiState.bitcoinRate?.toFormattedNumber(3) ?: "Failed to load"
-    val rateUpdate =
-        uiState.bitcoinRateUpdate?.let { "Last updated: ${it.toFormattedDateTime()}" }
-            ?: "Connect to the Internet and reopen the app"
     val balanceString =
         when (val balance = uiState.balance) {
             is RequestStatus.Success -> balance.response.toFormattedNumber()
@@ -94,8 +65,6 @@ fun MainScreen(
                 .padding(8.dp),
         ) {
             BalanceComposable(
-                rate = rateString,
-                rateUpdate = rateUpdate,
                 balance = balanceString,
                 onAddButtonClicked = {
                     viewModel.requireTopUpScreen(true)
@@ -119,8 +88,6 @@ fun MainScreen(
             modifier.fillMaxSize(),
         ) {
             BalanceComposable(
-                rate = rateString,
-                rateUpdate = rateUpdate,
                 balance = balanceString,
                 onAddButtonClicked = {
                     viewModel.requireTopUpScreen(true)
@@ -176,22 +143,12 @@ fun TransactionListOrPlaceholder(
 
 @Composable
 fun BalanceComposable(
-    rate: String,
-    rateUpdate: String,
     balance: String,
     onAddButtonClicked: () -> Unit,
     onAddTransaction: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Column(Modifier.fillMaxWidth()) {
-            Text(text = rate, modifier = Modifier.align(Alignment.End), textAlign = TextAlign.End)
-            Text(
-                text = rateUpdate,
-                modifier = Modifier.align(Alignment.End),
-                textAlign = TextAlign.End,
-            )
-        }
         Text(
             text = stringResource(id = R.string.balance),
             style = MaterialTheme.typography.headlineMedium,

@@ -20,11 +20,14 @@ import java.time.format.DateTimeFormatter
 abstract class TransactionsDatabase : RoomDatabase() {
     abstract fun transactionDao(): TransactionsDao
 
+    // Companion object serves as a holder for static methods and variables in Kotlin
     companion object {
+        // Private single instance, controlled internally
         @Volatile
         private var instance: TransactionsDatabase? = null
         private const val DATABASE_NAME = "transactions_db"
 
+        // Public method that initializes the instance the first time and then returns it
         fun getDatabase(context: Context): TransactionsDatabase {
             // if the Instance is not null, return it, otherwise create a new database instance.
             return instance ?: synchronized(this) {

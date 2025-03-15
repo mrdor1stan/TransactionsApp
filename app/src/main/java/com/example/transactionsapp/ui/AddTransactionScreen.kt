@@ -32,7 +32,6 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.transactionsapp.R
 import com.example.transactionsapp.data.Category
-import com.example.transactionsapp.ui.utils.TransactionsAppPositioning
 import kotlinx.coroutines.launch
 
 @Composable
